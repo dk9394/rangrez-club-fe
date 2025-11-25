@@ -2,7 +2,10 @@
   "name": "@rangrez-club-fe/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "dev:web": "npx nx serve web",
+    "dev:admin": "npx nx serve admin --port=4201"
+  },
   "private": true,
   "dependencies": {
     "@angular-devkit/build-angular": "~20.3.0",
