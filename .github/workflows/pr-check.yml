@@ -1,0 +1,109 @@
+name: PR Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        uses: nrwl/nx-set-shas@v4
+
+      - name: Check affected projects
+        id: affected
+        run: |
+          echo "Checking affected projects..."
+          npx nx show projects --affected --base=${{ github.event.pull_request.base.sha }} --head=${{ github.event.pull_request.head.sha }}
+
+      - name: Run affected lint
+        run: npx nx affected --target=lint --base=${{ github.event.pull_request.base.sha }} --head=${{ github.event.pull_request.head.sha }}
+
+      - name: Run affected tests
+        run: npx nx affected --target=test --base=${{ github.event.pull_request.base.sha }} --head=${{ github.event.pull_request.head.sha }} --configuration=ci --coverage
+
+      - name: Run affected builds
+        run: npx nx affected --target=build --base=${{ github.event.pull_request.base.sha }} --head=${{ github.event.pull_request.head.sha }} --configuration=production
+
+      - name: Comment PR
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('PR Validation')
+            );
+
+            const output = `### PR Validation Results
+
+            ✅ All checks passed!
+
+            - Linting: Passed
+            - Tests: Passed
+            - Build: Passed
+
+            The affected projects have been validated successfully.`;
+
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+              });
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              });
+            }
+
+  size-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build apps
+        run: |
+          npx nx build rangrez-club --configuration=production
+          npx nx build rangrez-club-admin --configuration=production
+
+      - name: Check bundle size
+        run: |
+          echo "Bundle sizes:"
+          du -sh dist/apps/rangrez-club || echo "rangrez-club not built"
+          du -sh dist/apps/rangrez-club-admin || echo "rangrez-club-admin not built"

@@ -1,0 +1,104 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'App to deploy'
+        required: true
+        type: choice
+        options:
+          - rangrez-club
+          - rangrez-club-admin
+          - both
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy-rangrez-club:
+    if: github.event.inputs.app == 'rangrez-club' || github.event.inputs.app == 'both' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build rangrez-club
+        run: npx nx build rangrez-club --configuration=production
+
+      - name: Deploy to hosting
+        run: |
+          echo "Deploying rangrez-club to ${{ github.event.inputs.environment || 'production' }}"
+          # Add your deployment commands here
+          # Examples:
+          # - Firebase: npx firebase deploy --only hosting:rangrez-club
+          # - Vercel: npx vercel --prod
+          # - AWS S3: aws s3 sync dist/apps/rangrez-club s3://your-bucket
+          # - Netlify: npx netlify deploy --prod --dir=dist/apps/rangrez-club
+
+      - name: Notify deployment success
+        if: success()
+        run: echo "rangrez-club deployed successfully"
+
+  deploy-rangrez-club-admin:
+    if: github.event.inputs.app == 'rangrez-club-admin' || github.event.inputs.app == 'both' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build rangrez-club-admin
+        run: npx nx build rangrez-club-admin --configuration=production
+
+      - name: Deploy to hosting
+        run: |
+          echo "Deploying rangrez-club-admin to ${{ github.event.inputs.environment || 'production' }}"
+          # Add your deployment commands here
+          # Examples:
+          # - Firebase: npx firebase deploy --only hosting:admin
+          # - Vercel: npx vercel --prod
+          # - AWS S3: aws s3 sync dist/apps/rangrez-club-admin s3://your-bucket
+          # - Netlify: npx netlify deploy --prod --dir=dist/apps/rangrez-club-admin
+
+      - name: Notify deployment success
+        if: success()
+        run: echo "rangrez-club-admin deployed successfully"
+
+  post-deploy:
+    needs: [deploy-rangrez-club, deploy-rangrez-club-admin]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send notification
+        run: |
+          echo "Deployment completed"
+          # Add notification commands here (Slack, Discord, Email, etc.)
