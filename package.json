@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {
     "dev:web": "npx nx serve rangrez-club",
-    "dev:admin": "npx nx serve admin --port=4201"
+    "dev:admin": "npx nx serve rangrez-club-admin --port=4201"
   },
   "private": true,
   "dependencies": {
