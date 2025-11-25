@@ -45,11 +45,13 @@ Navigate to the workspace and generate the admin application:
 
 ```bash
 cd rangrez-club-fe
-npx nx g @nx/angular:app admin \
+npx nx g @nx/angular:app
+  --name=rangrez-club
+  --directory=apps/rangrez-club \
   --style=scss \
   --bundler=esbuild \
+  --unitTestRunner=jest \
   --e2eTestRunner=none \
-  --unitTestRunner=jest
 ```
 
 **Explanation:**
